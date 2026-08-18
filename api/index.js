@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { init, db } = require('../db');
-const { auth, adminOnly, signToken } = require('../middleware/auth');
+const { init, db, pool } = require('../db');
 
 const app = express();
 
@@ -9,8 +8,24 @@ const app = express();
 app.use(express.json({ limit: '4mb' }));
 app.use(express.urlencoded({ extended: true, limit: '4mb' }));
 
-// 静态文件（Vercel会自动处理public目录，这里作为备用）
+// 静态文件
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// 数据库懒初始化中间件（仅首次请求时执行）
+let dbInitialized = false;
+app.use(async (req, res, next) => {
+  if (!dbInitialized) {
+    try {
+      await init();
+      console.log('数据库初始化完成');
+    } catch (e) {
+      console.error('数据库初始化失败:', e.message);
+      // 即使失败也继续，表可能已存在
+    }
+    dbInitialized = true;
+  }
+  next();
+});
 
 // API路由
 const authRoutes = require('../routes/auth');
@@ -32,21 +47,10 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// 数据库初始化标记
-let dbInitialized = false;
+// 全局错误处理
+app.use((err, req, res, next) => {
+  console.error('未捕获错误:', err.message);
+  res.status(500).json({ error: '服务器内部错误: ' + err.message });
+});
 
-// Vercel serverless 入口
-module.exports = async (req, res) => {
-  if (!dbInitialized) {
-    try {
-      await init();
-      dbInitialized = true;
-      console.log('数据库初始化完成（Vercel）');
-    } catch (e) {
-      console.error('数据库初始化失败:', e.message);
-      // 即使初始化失败也继续，表可能已存在
-      dbInitialized = true;
-    }
-  }
-  return app(req, res);
-};
+module.exports = app;

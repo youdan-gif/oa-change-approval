@@ -8,9 +8,14 @@ const needsSSL = connectionString.includes('supabase') || connectionString.inclu
 const pool = new Pool({
   connectionString,
   ssl: needsSSL ? { rejectUnauthorized: false } : undefined,
-  max: 3,
-  idleTimeoutMillis: 10000,
-  connectionTimeoutMillis: 10000,
+  max: 2,
+  idleTimeoutMillis: 5000,
+  connectionTimeoutMillis: 5000,
+});
+
+// 错误处理，防止进程崩溃
+pool.on('error', (err) => {
+  console.error('数据库连接错误(非致命):', err.message);
 });
 
 pool.on('error', (err) => {
