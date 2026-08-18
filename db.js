@@ -1,11 +1,15 @@
 const { Pool } = require('pg');
 
 // Supabase / PostgreSQL 连接池
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/oa';
+// Supabase和Vercel生产环境需要SSL
+const needsSSL = connectionString.includes('supabase') || connectionString.includes('.co') || process.env.VERCEL === '1';
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/oa',
-  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-  max: 10,
-  idleTimeoutMillis: 30000,
+  connectionString,
+  ssl: needsSSL ? { rejectUnauthorized: false } : undefined,
+  max: 3,
+  idleTimeoutMillis: 10000,
   connectionTimeoutMillis: 10000,
 });
 
@@ -182,6 +186,7 @@ async function init() {
       file_type TEXT,
       file_size INTEGER,
       file_path TEXT NOT NULL,
+      file_data BYTEA,
       description TEXT,
       created_at TIMESTAMP DEFAULT NOW(),
       FOREIGN KEY (request_id) REFERENCES change_requests(id),
@@ -204,6 +209,13 @@ async function init() {
       FOREIGN KEY (receiver_id) REFERENCES users(id)
     )
   `);
+
+  // 如果attachments表已存在但缺少file_data列，则添加
+  try {
+    await pool.query(`ALTER TABLE attachments ADD COLUMN IF NOT EXISTS file_data BYTEA`);
+  } catch (e) {
+    // 忽略错误（某些PG版本不支持IF NOT EXISTS）
+  }
 
   // 创建默认管理员（账号: admin / 密码: admin123）
   const bcrypt = require('bcryptjs');

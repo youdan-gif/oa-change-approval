@@ -1,36 +1,14 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { db } = require('../db');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// 确保上传目录存在
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-// multer配置
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const requestDir = path.join(uploadDir, `req-${req.body.request_id || 'temp'}`);
-    if (!fs.existsSync(requestDir)) fs.mkdirSync(requestDir, { recursive: true });
-    cb(null, requestDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, name);
-  }
-});
-
+// 使用内存存储（Vercel无持久化文件系统）
 const upload = multer({
-  storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
-  fileFilter: (req, file, cb) => {
-    cb(null, true);
-  }
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 }, // 4MB（Vercel限制）
 });
 
 // 上传附件
@@ -41,33 +19,34 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
   if (!request_id) return res.status(400).json({ error: '缺少审批单ID' });
 
   try {
-    const filePath = path.relative(path.join(__dirname, '..'), req.file.path);
-
+    // 文件存入数据库（BYTEA字段）
     const result = await db.run(`
-      INSERT INTO attachments (request_id, node_id, uploader_id, uploader_name, file_name, original_name, file_type, file_size, file_path, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO attachments (request_id, node_id, uploader_id, uploader_name, file_name, original_name, file_type, file_size, file_path, file_data, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       request_id,
       node_id || null,
       req.user.id,
       req.user.name,
-      req.file.filename,
+      req.file.filename || `${Date.now()}-${Math.round(Math.random() * 1e9)}`,
       req.file.originalname,
       req.file.mimetype,
       req.file.size,
-      filePath,
+      `db:${req.file.originalname}`,
+      req.file.buffer,
       description || ''
     ]);
 
     res.json({
       id: result.lastInsertRowid,
-      file_name: req.file.filename,
+      file_name: req.file.originalname,
       original_name: req.file.originalname,
       file_size: req.file.size,
       message: '上传成功'
     });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('上传失败:', e.message);
+    res.status(500).json({ error: '上传失败: ' + e.message });
   }
 });
 
@@ -77,11 +56,17 @@ router.get('/download/:id', auth, async (req, res) => {
     const attachment = await db.get('SELECT * FROM attachments WHERE id = ?', [req.params.id]);
     if (!attachment) return res.status(404).json({ error: '附件不存在' });
 
-    const filePath = path.join(__dirname, '..', attachment.file_path);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: '文件不存在' });
+    // 从数据库获取文件内容
+    if (attachment.file_data) {
+      const buffer = Buffer.from(attachment.file_data);
+      res.setHeader('Content-Type', attachment.file_type || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(attachment.original_name)}`);
+      return res.send(buffer);
+    }
 
-    res.download(filePath, attachment.original_name);
+    res.status(404).json({ error: '文件数据不存在' });
   } catch (e) {
+    console.error('下载失败:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -94,9 +79,6 @@ router.delete('/:id', auth, async (req, res) => {
     if (attachment.uploader_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: '无权删除' });
     }
-
-    const filePath = path.join(__dirname, '..', attachment.file_path);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
     await db.run('DELETE FROM attachments WHERE id = ?', [req.params.id]);
     res.json({ message: '已删除' });

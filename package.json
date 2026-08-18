@@ -1,11 +1,12 @@
 {
   "name": "change-approval-oa",
-  "version": "2.0.0",
-  "description": "工程变更审批OA系统 - Supabase PostgreSQL版",
-  "main": "server.js",
+  "version": "3.0.0",
+  "description": "工程变更审批OA系统 - Supabase PostgreSQL + Vercel版",
+  "main": "api/index.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "vercel-dev": "vercel dev"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

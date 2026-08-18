@@ -1,0 +1,9 @@
+data/
+uploads/
+backup.sh
+deploy.sh
+docker-compose.yml
+Dockerfile
+.dockerignore
+DEPLOY-SUPABASE-RENDER.md
+README.md
