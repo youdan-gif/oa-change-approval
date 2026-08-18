@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工程变更审批OA系统 - 腾讯云CloudBase部署指南</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", sans-serif; background: #f0f2f5; color: #1a1a2e; line-height: 1.8; }
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 20px 80px; }
+  h1 { font-size: 28px; color: #0066ff; text-align: center; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #666; margin-bottom: 40px; font-size: 15px; }
+  .card { background: #fff; border-radius: 12px; padding: 30px; margin-bottom: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  h2 { font-size: 22px; color: #1a1a2e; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #0066ff; display: flex; align-items: center; gap: 10px; }
+  h2 .num { background: #0066ff; color: #fff; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+  h3 { font-size: 17px; color: #333; margin: 20px 0 10px; }
+  p { margin-bottom: 12px; font-size: 15px; }
+  ol, ul { margin-left: 24px; margin-bottom: 12px; }
+  li { margin-bottom: 8px; font-size: 15px; }
+  .alert { background: #fff7e6; border: 1px solid #ffd591; border-radius: 8px; padding: 16px; margin: 16px 0; }
+  .alert-warn { background: #fff1f0; border-color: #ffa39e; }
+  .alert-ok { background: #f6ffed; border-color: #b7eb8f; }
+  .alert-info { background: #e6f7ff; border-color: #91d5ff; }
+  .alert-title { font-weight: bold; margin-bottom: 6px; }
+  code { background: #f5f5f5; padding: 2px 8px; border-radius: 4px; font-family: "Courier New", monospace; color: #c7254e; font-size: 14px; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px; border-radius: 8px; font-family: "Courier New", monospace; font-size: 14px; margin: 12px 0; overflow-x: auto; }
+  .btn-link { display: inline-block; background: #0066ff; color: #fff; padding: 8px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; margin: 8px 0; }
+  .btn-link:hover { background: #0052cc; }
+  .step-num { display: inline-block; background: #e6f7ff; color: #0066ff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-weight: bold; margin-right: 8px; font-size: 13px; }
+  .toc { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 8px; padding: 20px 30px; margin-bottom: 30px; }
+  .toc h3 { margin-top: 0; color: #0066ff; }
+  .toc ol { margin-left: 20px; }
+  .toc a { color: #0066ff; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .important { color: #ff4d4f; font-weight: bold; }
+  .highlight { background: #fffbe6; padding: 1px 4px; border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>工程变更审批OA系统</h1>
+<p class="subtitle">腾讯云 CloudBase 云托管部署指南（非程序员友好版）</p>
+
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#step1">创建 CloudBase 环境</a></li>
+    <li><a href="#step2">创建云托管服务（Git 部署）</a></li>
+    <li><a href="#step3">配置持久化存储（关键步骤！）</a></li>
+    <li><a href="#step4">访问系统并登录</a></li>
+    <li><a href="#faq">常见问题</a></li>
+  </ol>
+</div>
+
+<div class="card" id="step1">
+  <h2><span class="num">1</span>创建 CloudBase 环境</h2>
+  <p>CloudBase 环境是所有云服务的容器，需要先创建环境才能部署服务。</p>
+
+  <h3>操作步骤</h3>
+  <ol>
+    <li>打开浏览器，访问：<a href="https://tcb.cloud.tencent.com/dev" target="_blank">https://tcb.cloud.tencent.com/dev</a></li>
+    <li>使用您的腾讯云账号登录（如果没有，点击注册，手机号即可注册）</li>
+    <li>登录后，点击页面上的 <span class="highlight">"新建环境"</span> 按钮</li>
+    <li>填写环境信息：
+      <ul>
+        <li><strong>环境名称</strong>：输入 <code>oa-system</code>（随便起名，自己记住即可）</li>
+        <li><strong>地域</strong>：选择 <span class="highlight">上海</span>（必须选上海，云托管仅支持上海）</li>
+        <li><strong>套餐</strong>：选择 <strong>个人版</strong>（有免费额度）</li>
+      </ul>
+    </li>
+    <li>点击"开通"，等待约1-2分钟创建完成</li>
+    <li>创建完成后，你会看到环境ID，类似 <code>oa-system-xxxxx</code>，记下来</li>
+  </ol>
+
+  <div class="alert alert-info">
+    <div class="alert-title">说明</div>
+    个人版套餐包含一定的免费额度，对于小型OA系统（几十人使用）完全够用。
+  </div>
+</div>
+
+<div class="card" id="step2">
+  <h2><span class="num">2</span>创建云托管服务（Git 部署）</h2>
+  <p>代码已经推送到 GitHub，接下来在 CloudBase 中连接 GitHub 仓库自动部署。</p>
+
+  <h3>操作步骤</h3>
+  <ol>
+    <li>进入刚才创建的环境后，在左侧菜单找到 <span class="highlight">"云托管"</span>，点击进入</li>
+    <li>点击 <span class="highlight">"新建服务"</span></li>
+    <li>服务信息填写：
+      <ul>
+        <li><strong>服务名称</strong>：<code>oa-system</code></li>
+        <li><strong>部署方式</strong>：选择 <strong>Git 部署</strong></li>
+      </ul>
+    </li>
+    <li>GitHub 授权：
+      <ul>
+        <li>点击"授权 GitHub"，会跳转到 GitHub 登录页面</li>
+        <li>登录 GitHub 账号（之前注册的 <code>349678981@qq.com</code>）</li>
+        <li>授权 CloudBase 访问你的仓库</li>
+      </ul>
+    </li>
+    <li>选择仓库：
+      <ul>
+        <li>选择仓库 <code>youdan-gif/oa-change-approval</code></li>
+        <li>分支选择 <code>main</code></li>
+      </ul>
+    </li>
+    <li>构建配置：
+      <ul>
+        <li><strong>容器端口</strong>：输入 <code>3000</code></li>
+        <li><strong>环境变量</strong>：点击"新增"，填写：
+          <ul>
+            <li>变量名：<code>NODE_ENV</code>，值：<code>production</code></li>
+            <li>变量名：<code>DATA_DIR</code>，值：<code>/app/data</code></li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li>其他选项保持默认，点击 <span class="highlight">"确定"</span></li>
+    <li>等待构建完成（约3-5分钟），状态变为"运行中"即表示成功</li>
+  </ol>
+
+  <div class="alert alert-warn">
+    <div class="alert-title">注意</div>
+    构建过程中会下载依赖和编译 native 模块，可能需要 3-5 分钟。如果构建失败，请查看构建日志中的错误信息。
+  </div>
+</div>
+
+<div class="card" id="step3">
+  <h2><span class="num">3</span>配置持久化存储（关键步骤！）</h2>
+
+  <div class="alert alert-warn">
+    <div class="alert-title">为什么需要这一步？</div>
+    云托管的容器实例默认使用临时存储，<strong>实例重启或重新部署后数据会丢失</strong>。对于OA审批系统，数据丢失是不可接受的！<br>
+    通过挂载 CFS 文件存储，可以确保数据库永久保存。
+  </div>
+
+  <h3>3.1 创建私有网络（VPC）</h3>
+  <ol>
+    <li>打开新标签页，访问：<a href="https://console.cloud.tencent.com/vpc" target="_blank">https://console.cloud.tencent.com/vpc</a></li>
+    <li>确认地域选择为 <strong>上海</strong>（页面顶部）</li>
+    <li>点击"新建"，填写：
+      <ul>
+        <li>名称：<code>oa-vpc</code></li>
+        <li>可用区：选择"上海二区"或任意</li>
+        <li>子网名称：<code>oa-subnet</code></li>
+        <li>IPv4网段：保持默认 <code>10.0.0.0/16</code></li>
+      </ul>
+    </li>
+    <li>点击"确定"创建完成</li>
+  </ol>
+
+  <h3>3.2 创建 CFS 文件存储</h3>
+  <ol>
+    <li>访问：<a href="https://console.cloud.tencent.com/cfs" target="_blank">https://console.cloud.tencent.com/cfs</a></li>
+    <li>确认地域为 <strong>上海</strong></li>
+    <li>点击"新建文件系统"，填写：
+      <ul>
+        <li>名称：<code>oa-cfs</code></li>
+        <li>文件协议：<strong>NFS</strong>（默认）</li>
+        <li>存储类型：<strong>通用型标准</strong>（性价比最高）</li>
+        <li>网络/私有网络：选择刚才创建的 <code>oa-vpc</code> 和 <code>oa-subnet</code></li>
+      </ul>
+    </li>
+    <li>点击"确定"，等待创建完成（约1-2分钟）</li>
+    <li>创建完成后，记录文件系统ID（类似 <code>cfs-xxxxx</code>）</li>
+  </ol>
+
+  <h3>3.3 在云托管中启用 VPC 和 CFS</h3>
+  <ol>
+    <li>回到 CloudBase 控制台，进入"云托管" → 点击你的 <code>oa-system</code> 服务</li>
+    <li>找到 <span class="highlight">"服务设置"</span> 标签页</li>
+    <li><strong>启用私有网络</strong>：
+      <ul>
+        <li>找到"私有网络"部分，点击"启用"</li>
+        <li>VPC 选择：<code>oa-vpc</code></li>
+        <li>子网选择：<code>oa-subnet</code></li>
+        <li>点击保存</li>
+      </ul>
+    </li>
+    <li><strong>启用存储挂载（CFS）</strong>：
+      <ul>
+        <li>找到"存储挂载"部分，点击"启用存储挂载"</li>
+        <li>存储类型：选择 <strong>文件存储 CFS</strong></li>
+        <li>文件系统：选择 <code>oa-cfs</code></li>
+        <li>挂载点：选择可用的挂载点</li>
+        <li>远程目录：<code>/</code>（默认）</li>
+        <li><strong>实例挂载路径</strong>：输入 <code>/app/data</code>（重要！必须和 DATA_DIR 环境变量一致）</li>
+        <li>权限：读写</li>
+        <li>点击保存</li>
+      </ul>
+    </li>
+    <li>保存后，<strong>重新部署服务</strong>（在服务页面点击"重新部署"），使存储挂载生效</li>
+  </ol>
+
+  <div class="alert alert-ok">
+    <div class="alert-title">完成！</div>
+    设置完成后，你的 SQLite 数据库将存储在 CFS 持久化存储中，即使实例重启或重新部署，数据也不会丢失。
+  </div>
+</div>
+
+<div class="card" id="step4">
+  <h2><span class="num">4</span>访问系统并登录</h2>
+
+  <h3>获取访问地址</h3>
+  <ol>
+    <li>在 CloudBase 云托管服务详情页面，找到 <span class="highlight">"访问服务"</span> 部分</li>
+    <li>你会看到一个访问地址，格式类似：<code>https://oa-system-xxxx-xxxx.sh.run.tcloudbase.com</code></li>
+    <li>复制这个地址，在浏览器中打开</li>
+  </ol>
+
+  <h3>登录系统</h3>
+  <ol>
+    <li>打开访问地址，进入登录页面</li>
+    <li>使用管理员账号登录：
+      <ul>
+        <li>账号：<code>admin</code></li>
+        <li>密码：<code>admin123</code></li>
+      </ul>
+    </li>
+    <li>登录后，建议立即在"管理员"页面修改密码</li>
+  </ol>
+
+  <div class="alert alert-warn">
+    <div class="alert-title">安全提示</div>
+    首次登录后请立即修改默认密码！在系统设置中可以修改管理员密码。
+  </div>
+</div>
+
+<div class="card" id="faq">
+  <h2>常见问题</h2>
+
+  <h3>Q: 构建失败怎么办？</h3>
+  <p>查看构建日志。常见原因：网络超时导致 npm install 失败，可以尝试重新部署。如果是 better-sqlite3 编译失败，确认 Dockerfile 使用了 node:18-slim 镜像。</p>
+
+  <h3>Q: 访问地址打不开？</h3>
+  <p>等待服务完全启动（约30秒-1分钟）。如果长时间打不开，检查服务状态是否为"运行中"，查看日志是否有启动错误。</p>
+
+  <h3>Q: 不配置 CFS 会怎样？</h3>
+  <p><span class="important">数据会在实例重启或重新部署后丢失！</span>如果不配置 CFS，系统仍然可以运行，但所有审批数据、用户注册数据都存在丢失风险。强烈建议完成第3步。</p>
+
+  <h3>Q: CFS 收费吗？</h3>
+  <p>CFS 文件存储按实际使用量计费，通用型标准存储约 0.0002元/GB/小时，对于小型OA系统（数据库通常不到 100MB），每月费用约 1-2 元，几乎可以忽略不计。</p>
+
+  <h3>Q: 如何后续更新代码？</h3>
+  <p>代码推送到 GitHub 的 main 分支后，CloudBase 会自动重新构建部署。如果设置了 CFS，数据库数据不会受影响。</p>
+
+  <h3>Q: 忘记管理员密码怎么办？</h3>
+  <p>在 CloudBase 控制台进入服务日志，查看启动日志中有默认账号信息。也可以通过重置数据库（删除 CFS 中的数据文件）来恢复默认账号。</p>
+</div>
+
+</div>
+</body>
+</html>
