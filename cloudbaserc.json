@@ -1,0 +1,13 @@
+{
+  "version": "2.0",
+  "envId": "{{env.TCB_ENV_ID}}",
+  "region": "ap-shanghai",
+  "run": {
+    "serviceName": "oa-system",
+    "containerPort": 3000,
+    "envVariables": {
+      "NODE_ENV": "production",
+      "DATA_DIR": "/app/data"
+    }
+  }
+}

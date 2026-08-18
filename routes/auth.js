@@ -83,7 +83,7 @@ router.get('/users/search', auth, async (req, res) => {
     params.push(org_type);
   }
   if (keyword) {
-    sql += ` AND (name ILIKE ? OR org_name ILIKE ? OR specialty ILIKE ?)`;
+    sql += ` AND (name LIKE ? OR org_name LIKE ? OR specialty LIKE ?)`;
     const kw = `%${keyword}%`;
     params.push(kw, kw, kw);
   }

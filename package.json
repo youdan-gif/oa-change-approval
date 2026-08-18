@@ -1,8 +1,8 @@
 {
   "name": "change-approval-oa",
   "version": "3.0.0",
-  "description": "工程变更审批OA系统 - Supabase PostgreSQL + Vercel版",
-  "main": "api/index.js",
+  "description": "工程变更审批OA系统 - 腾讯云CloudBase云托管版",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^13.0.3",
     "exceljs": "^4.4.0",
     "express": "^4.21.0",
     "jsonwebtoken": "^9.0.2",

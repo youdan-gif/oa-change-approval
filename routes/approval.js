@@ -342,7 +342,7 @@ router.get('/stats', auth, async (req, res) => {
     `);
 
     const byMonth = await db.all(`
-      SELECT to_char(created_at, 'YYYY-MM') as month, COUNT(*) as count
+      SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count
       FROM change_requests GROUP BY month ORDER BY month DESC
     `);
 
@@ -722,7 +722,7 @@ router.get('/notifications', auth, async (req, res) => {
 // 标记通知为已读
 router.post('/notifications/read/:id', auth, async (req, res) => {
   try {
-    await db.run('UPDATE notifications SET is_read = TRUE WHERE id = ? AND receiver_id = ?',
+    await db.run('UPDATE notifications SET is_read = 1 WHERE id = ? AND receiver_id = ?',
       [req.params.id, req.user.id]);
     res.json({ message: '已标记为已读' });
   } catch (e) {
