@@ -4,8 +4,39 @@ const dns = require('dns');
 // 强制使用IPv4（避免IPv6 ENETUNREACH错误）
 dns.setDefaultResultOrder('ipv4first');
 
-// Supabase / PostgreSQL 连接池
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/oa';
+// === 自动将Supabase直连地址转换为Pooler地址（IPv4） ===
+// 直连地址: postgresql://postgres:密码@db.xxx.supabase.co:5432/postgres
+// Pooler地址: postgresql://postgres.xxx:密码@aws-0-us-east-1.pooler.supabase.com:5432/postgres
+function convertToPooler(url) {
+  if (!url || !url.includes('supabase.co')) return url;
+
+  try {
+    // 从 db.csyubruolgqcpzvqgfap.supabase.co 中提取项目ID
+    const match = url.match(/db\.([^.]+)\.supabase\.co/);
+    if (!match) return url;
+    const projectId = match[1];
+
+    // 从 postgresql://postgres:密码@ 中提取密码
+    const pwdMatch = url.match(/postgresql:\/\/postgres:([^@]+)@/);
+    if (!pwdMatch) return url;
+    const password = pwdMatch[1];
+
+    // 构建Pooler连接字符串（IPv4可访问）
+    return `postgresql://postgres.${projectId}:${password}@aws-0-us-east-1.pooler.supabase.com:5432/postgres`;
+  } catch (e) {
+    return url;
+  }
+}
+
+let connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/oa';
+
+// 如果是Supabase直连地址，自动转换为Pooler地址
+if (connectionString.includes('db.') && connectionString.includes('.supabase.co')) {
+  console.log('检测到Supabase直连地址，自动转换为Pooler地址（IPv4）...');
+  connectionString = convertToPooler(connectionString);
+  console.log('转换后的连接地址:', connectionString.replace(/:[^:@]+@/, ':***@'));
+}
+
 // Supabase和Vercel生产环境需要SSL
 const needsSSL = connectionString.includes('supabase') || connectionString.includes('.co') || process.env.VERCEL === '1';
 
@@ -15,7 +46,6 @@ const pool = new Pool({
   max: 2,
   idleTimeoutMillis: 5000,
   connectionTimeoutMillis: 10000,
-  host: undefined, // 使用connectionString中的host
 });
 
 // 错误处理，防止进程崩溃
