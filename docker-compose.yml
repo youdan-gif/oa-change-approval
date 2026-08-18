@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  oa-system:
+    build: .
+    container_name: change-approval-oa
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - oa-data:/app/data
+      - oa-uploads:/app/uploads
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Shanghai
+
+volumes:
+  oa-data:
+  oa-uploads:

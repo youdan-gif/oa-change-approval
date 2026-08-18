@@ -1,0 +1,19 @@
+# Render 部署配置
+# 文档: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: change-approval-oa
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # 在Render面板手动填写Supabase连接字符串
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true  # Render自动生成
