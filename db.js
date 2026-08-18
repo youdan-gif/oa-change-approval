@@ -1,4 +1,8 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+const dns = require('dns');
+
+// 强制使用IPv4（避免IPv6 ENETUNREACH错误）
+dns.setDefaultResultOrder('ipv4first');
 
 // Supabase / PostgreSQL 连接池
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/oa';
@@ -10,7 +14,8 @@ const pool = new Pool({
   ssl: needsSSL ? { rejectUnauthorized: false } : undefined,
   max: 2,
   idleTimeoutMillis: 5000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
+  host: undefined, // 使用connectionString中的host
 });
 
 // 错误处理，防止进程崩溃
